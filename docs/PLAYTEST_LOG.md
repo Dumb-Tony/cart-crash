@@ -1,5 +1,15 @@
 # Cart Crash — Playtest log
 
+## 2026-09-13 — m1-2 jump and sunset visual revision
+
+User feedback: the aesthetic needed substantial work and the jump did not actually jump. The previous Space behavior only boosted in the dip; it was not a general jump. Implemented real grounded tap/charged hops and buffered releases between frames, while keeping air releases powerless and preserving the ramp route. This supersedes the pump-only M1 hypothesis. Reworked the environment, cart/rider, ramp/bin presentation, HUD/menu palette, and explicit airborne separation from a grounded shadow.
+
+Node regression suite passes, including new flat-ground tap/charged rise-and-land assertions and a keydown+keyup wholly between frames. Safe and ramp complete traces still finish in 65.575 / 63.208 s at synthetic 30/60/120 render schedules, with 0 / 163 banked points and no recoveries. Existing crash, repeated event, restart, focus, storage and simulated ten-minute checks pass. The prior real-time ten-minute soak below applies to m1-1, not this renderer. Browser verification for this revision is recorded after the route checks. Human feel/visual quality gates remain unclaimed.
+
+Browser checks (same PC, 1280×720 in-app browser): actual Space keypress produced HOP feedback on ordinary road. An automated apex inspection showed clear airborne cart/shadow separation. Inspection also exposed the ramp-top/flight-height discontinuity, now fixed by starting flight at 1.3 m and allowing the corresponding 17 m/s vertical landing threshold. A regression asserts launch height never drops below the lip. The final corrected ramp replay completed in 63.21 s with 163 points, one gap/landing/pump and zero recoveries, averaging 116.8 rendered FPS with 2.60 ms maximum measured JS work; browser warnings/errors were empty. These are agent-operated/automated checks, not human feel testing.
+
+Final safe-route browser replay: 65.57 s, zero score/recoveries, one pump, 132.2 average rendered FPS, 2.40 ms maximum measured JS work, no browser warnings/errors. Both final routes completed after the movement changes.
+
 ## 2026-09-13 — M1 implementation validation
 
 Build/course/physics version: `m1-1`. Tester: coding agent using Node regressions and browser interaction/automated input, not a fresh human player. No five-player sample has been recruited or invented.

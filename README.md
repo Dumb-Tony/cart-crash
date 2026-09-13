@@ -6,7 +6,7 @@ Play: https://dumb-tony.github.io/cart-crash/
 
 Offline: open `prototypes/m1/index.html` in a desktop browser. The file embeds all CSS, game code, geometry and synthesized audio. No installation, build, CDN or external assets are needed. Keyboard required.
 
-Steer with A/D or left/right; W/S or up/down lean; hold Space and release in the dip's striped exit to pump; Shift brakes; Esc pauses; R immediately restarts. Stay left of the ramp for the safe route, or retain speed and take the right dumpster jump. Mute and reduced effects are available before play. Results show separate local time and score bests. The start screen can reset local records.
+Steer with A/D or left/right; W/S or up/down lean; hold/release Space to jump (longer hold gives more height); release in the dip's striped exit for a speed boost; Shift brakes; Esc pauses; R immediately restarts. Stay left of the ramp for the safe route, or retain speed and take the right dumpster jump. Mute and reduced effects are available before play. Results show separate local time and score bests. The start screen can reset local records.
 
 - Read [GDD.md](GDD.md) for the comprehensive design and scope.
 - Read [docs/PROTOTYPE_M1.md](docs/PROTOTYPE_M1.md) for the standalone HTML mechanic test and acceptance gates.

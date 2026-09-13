@@ -16,6 +16,8 @@ Become dangerously competent at something obviously foolish. A wobbling cart cle
 Choose a course and goal → launch → build momentum → choose safe or risky lines → link stunts → recover or bail → cross the finish → compare time and score → restart. Time trial and score attack share courses but retain separate records; a slow trick-heavy run must not ambiguously beat a fast time trial.
 
 ## Controls
+
+M1-2 revision after user feedback: Space hold/release now makes a real grounded hop anywhere, with additional speed only in the pump zone. Quick releases are buffered between simulation frames. This supersedes the original pump-only hypothesis below; details and tests are in docs/PARAMETERS_M1.md and docs/PLAYTEST_LOG.md.
 Proposed keyboard: A/D or arrows steer; W/S lean forward/back; Space crouch, release to pump; Shift brake; B bail; R restart; Escape pause. Steering also supplies modest airborne roll correction. Gamepad later: left stick steer/lean, right trigger crouch, left trigger brake, face button bail. Remap everything; avoid mandatory simultaneous three-key chords. Pumping only adds a small impulse from stored compression when contacting suitable terrain; it is not an unlimited jump button.
 
 ## Moment-to-moment mechanics
