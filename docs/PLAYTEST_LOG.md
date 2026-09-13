@@ -1,5 +1,17 @@
 # Cart Crash — Playtest log
 
+## 2026-09-13 — m1-5 ramp reliability, faster charge and graphics
+
+User reported unreliable ramp takeoff, suggested faster charge, and requested another visual pass. Identified a grounded-only lip trigger that skipped launch after an early approach hop. Added ramp-specific low-hop capture and release buffering, removed the crouch launch penalty, and reduced full-charge time to 0.25 s. Added charge feedback, clearer automatic-ramp instructions, more detailed scenery/cart, and fixed world sampling for scenery stability. Parameters/history are in PARAMETERS_M1.md.
+
+New automated matrix: 63 combinations of initial approach speed (30/42/58 m/s), lane (x=2/4/7), release distance (860/875/885/895/899/902 m or held throughout), all launching, clearing the gap and landing with no crash. Added an explicit full-charge-at-0.25-s assertion. Existing low-speed failure, midair release, maximum-speed launch, curve guidance, recovery, storage, restart and focus regressions pass. Corrected full safe/ramp traces remain 38.192 / 37.867 s at synthetic 30/60/120 rendered schedules, with 0 / 163 points and no recoveries. These are automated tests, not fresh-player evidence.
+
+Browser normal ramp replay with new visual detail: 37.87 s, 163 points, one gap/landing/pump, zero recoveries; 86.2 average rendered FPS, 4.50 ms maximum measured JS work. Screenshot inspected the new cart, storefronts, foliage and road texture. Subjective visual/handling quality remains for user assessment; the old m1-1 ten-minute real-time soak is not claimed for this renderer.
+
+Browser early-release replay (actual input releases at 865 m before the buffering region): 37.87 s, 163 points, one gap/landing/pump, zero recoveries, no warnings/errors; 81.0 average rendered FPS. This exercises the approach-hop case which could previously bypass ramp launch. Final rendering change anchors the scenery sampling grid to world coordinates, preventing small camera-relative placement jumps.
+
+Final safe-route browser replay after the world-grid change: 38.19 s, one pump, zero points/recoveries, no warnings/errors; 68.2 average rendered FPS and 3.80 ms maximum measured JS work. Normal, early-release, and safe routes all reached results.
+
 ## 2026-09-13 — m1-4 partial curve assistance
 
 User requested a middle ground between automatic curve tracking and instant curb impacts. Added speed-dependent partial caster guidance (62% road following at ≥45 m/s, more at lower speed), retaining world-space inertia and direct steering. Corrected curb response to act on road-relative velocity.

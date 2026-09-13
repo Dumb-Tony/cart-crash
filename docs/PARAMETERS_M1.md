@@ -1,6 +1,14 @@
 # M1 implementation and tuning notes
 
-Current build/physics/storage version: `m1-4` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+Current build/physics/storage version: `m1-5` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+
+## Quick charge, forgiving ramp entry, and visual detail
+
+User reported intermittent ramp jumps and requested quicker charging plus another graphics pass. Full Space charge now takes 0.25 s (rate 4/s) instead of 0.67 s. A visible bar above the cart shows charge and READY. Ramp launch is automatic, independent of holding/releasing Space; text/signage now makes that explicit.
+
+The inconsistency came from ramp entry requiring grounded state: a pre-ramp Space release could create a small hop, causing the automatic lip trigger to be skipped. The ramp now accepts approach hops up to 3 m above road height, preserves existing upward velocity if greater, and uses at least the 1.3 m lip height. Grounded releases in the right lane from 870–900 m are buffered to the lip instead of creating a premature hop. Holding crouch no longer subtracts launch impulse. Charge can add up to .5 m/s to launch before the existing 14.5 cap. Ordinary midair Space releases still add no energy; this forgiveness is tied to crossing the authored ramp. Slow approaches can still hit the obstacle, and poor landing alignment still matters.
+
+Graphics: detailed shopfront windows/doors/reflections/striped awnings/signage/planters; layered tree canopies and branches; clouds, subtle asphalt texture and manholes; ramp approach chevrons and dark metal dumpster lids; 12% larger cart with rotating caster highlights and helmet/backpack details. Terrain/scenery samples are now fixed to world coordinates to avoid small placement jumps as the camera advances. All remain embedded Canvas assets. Developer `Early-release ramp` deliberately releases at 865 m to exercise the airborne-entry case during a complete ordinary replay.
 
 ## Partial caster guidance through curves
 
