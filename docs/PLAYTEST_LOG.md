@@ -12,7 +12,7 @@ Build/course/physics version: `m1-1`. Tester: coding agent using Node regression
 - Node: 24.19.0 at `C:\Program Files\nodejs\node.exe`. The separate bundled runtime exited without diagnostics when executing scripts, so the installed Node executable was used.
 - Mute and reduced effects enabled for initial browser runs.
 
-### Evidence so far
+### Automated and browser evidence
 
 `tests/m1.test.cjs` runs the actual embedded simulation code in a small Node VM with a mocked DOM/canvas. It does not use a duplicate physics implementation. Scripted traces hold Space between 590 and 650 m; the ramp trace steers right after 700 m until x ≥ 3.5. No steering/pumping energy is injected directly into those complete route runs.
 
@@ -34,6 +34,7 @@ Passing regression assertions:
 - Large frame backlog is bounded to eight simulation steps.
 - Crossing finish produces results; retry reconstructs clean play state.
 - Storage exceptions do not break startup, finish, results or restart.
+- Malformed numeric records fall back safely; valid settings/records round-trip; explicit local reset clears records.
 - Ten minutes of simulated duration complete nine full ramp routes with finite state. This is not a wall-clock/browser soak claim.
 - Source check finds no remote script or fetch dependency.
 
@@ -41,7 +42,11 @@ Browser interaction: started the game normally and let the safe line complete wi
 
 The browser URL policy blocked direct `file://` navigation. Direct offline browser execution is therefore **unverified**; all game assets/code are embedded and the VM passed without network or working storage. Browser checks use a localhost server restricted to this one HTML file. That server is optional development tooling, not a game dependency.
 
-A real-time ten-minute browser replay soak is underway; final wall-clock and rendering measurements will be appended when it completes. No current claim is made that that test has finished.
+A real-time browser replay soak completed **10 full ramp routes** (roughly 632 s of simulated play, result observed at 640 wall seconds). Final route: **63.21 s, 163 banked points, one gap, one clean landing, one pump, zero recoveries**, peak FLOW 1.50×. The browser reported **168.9 average rendered FPS**, with **1.70 ms maximum measured JavaScript render-plus-simulation work**. This cost excludes compositor/GPU/OS time; it is not a universal performance guarantee. Checkpoints at 114, 218, 340, 437, 516 and 579 wall seconds stayed responsive, with roughly 169 average FPS and no observed decline. Browser warning/error log was empty at completion. This is real-time automated input and rendering, not a human enjoyment test.
+
+After the soak, 20 actual browser R presses followed by Escape produced a clean paused run: 0.00 s, 0 score, 1.00× FLOW, initial speed. The explicit replay controls do not save bests: the final replay results still showed the earlier ordinary safe best (66.99 s / 0 points).
+
+Publication: public repository `Dumb-Tony/cart-crash`; GitHub Actions regression/deployment run 34739411341 succeeded. https://dumb-tony.github.io/cart-crash/ returned HTTP 200 with HTML identical to the committed artifact (normalized line endings). Public browser launch/start and visible gameplay were also verified. Pages receives only the standalone HTML; private SOURCE_BASIS.md remained local and absent from the public repository. Final follow-up updates retain the same tested physics and add record-value validation plus evidence documentation.
 
 ### Iteration and decision
 
@@ -51,7 +56,7 @@ The first ramp impulse (speed × 0.30) repeatedly landed a normal approach insid
 
 ### Required human gate
 
-Recruit five fresh players if available; essential bindings, one practice run, five measured runs each. Record completion by run three, ≥10% time improvement or a reproducible alternate line, voluntary retries, explanations of momentum, and controls/camera confusion separately. The proposed four-of-five completion and three-of-five mastery/retry gates remain **pending**. Do not infer them from automation.
+Recruit five fresh players if available; essential bindings, one practice run, five measured runs each. Record completion by run three, ≥10% time improvement or a reproducible alternate line, voluntary retries, explanations of momentum, and controls/camera confusion separately. The proposed four-of-five completion and three-of-five mastery/retry gates remain **pending**. Do not infer them from automation. HUMAN_TEST_SHEET.md is a blank worksheet for that experiment.
 
 ## Entry template
 

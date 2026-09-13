@@ -17,7 +17,7 @@ const P={gravity:18,response:6,air:.2,maxSpeed:42,align:20*Math.PI/180};
 const TRACK=[{end:280,slope:.16,width:8,friction:.65,name:'START SLOPE'},{end:560,slope:.11,width:8,friction:.8,name:'BROAD TURN'},{end:700,slope:.18,width:8,friction:.65,name:'PUMP DIP'},{end:870,slope:.12,width:8,friction:.6,name:'CHOOSE YOUR LINE'},{end:960,slope:.1,width:8,friction:.6,name:'DUMPSTER GAP'},{end:1250,slope:.14,width:9,friction:.7,name:'RECOVERY RUNOFF'},{end:LENGTH,slope:.1,width:8,friction:.65,name:'HOME STRAIGHT'}];
 const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d');
 let stored={};try{stored=JSON.parse(localStorage.getItem('cart-crash-'+VERSION)||'{}')||{}}catch{}
-let settings={mute:stored.mute!==false,reduced:stored.reduced!==false},best={time:Number.isFinite(stored.time)?stored.time:null,score:stored.score||0};
+let settings={mute:stored.mute!==false,reduced:stored.reduced!==false},best={time:Number.isFinite(stored.time)&&stored.time>=0?stored.time:null,score:Number.isFinite(stored.score)&&stored.score>=0?stored.score:0};
 function save(){try{localStorage.setItem('cart-crash-'+VERSION,JSON.stringify({...settings,...best}))}catch{}}
 let keys=new Set(),state,mode='start',acc=0,last=0,debug=false,frameCost=0,simCost=0,audio;
 let replay='',soakStart=0,soakRuns=0,perfFrames=0,perfSeconds=0,perfMax=0;
