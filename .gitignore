@@ -1,0 +1,4 @@
+docs/SOURCE_BASIS.md
+node_modules/
+test-results/
+*.log
