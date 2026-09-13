@@ -46,7 +46,7 @@ A real-time browser replay soak completed **10 full ramp routes** (roughly 632 s
 
 After the soak, 20 actual browser R presses followed by Escape produced a clean paused run: 0.00 s, 0 score, 1.00× FLOW, initial speed. The explicit replay controls do not save bests: the final replay results still showed the earlier ordinary safe best (66.99 s / 0 points).
 
-Publication: public repository `Dumb-Tony/cart-crash`; GitHub Actions regression/deployment run 34739411341 succeeded. https://dumb-tony.github.io/cart-crash/ returned HTTP 200 with HTML identical to the committed artifact (normalized line endings). Public browser launch/start and visible gameplay were also verified. Pages receives only the standalone HTML; private SOURCE_BASIS.md remained local and absent from the public repository. Final follow-up updates retain the same tested physics and add record-value validation plus evidence documentation.
+Publication: public repository `Dumb-Tony/cart-crash`; GitHub Actions regression/deployment runs 34739411341 and 34739968019 succeeded. https://dumb-tony.github.io/cart-crash/ returned HTTP 200 with HTML identical to the committed artifact (normalized line endings). The public browser completed the safe route in 66.99 s with zero recoveries and no warnings/errors. Public reset cleared the test record. Pages receives only the standalone HTML; private SOURCE_BASIS.md remained local and absent from the public repository. Final follow-up updates retain the same tested physics and add record-value validation plus evidence documentation. Final screenshot inspection caught white-on-white secondary-button hover text; a dedicated dark hover background fixes that contrast defect.
 
 ### Iteration and decision
 
