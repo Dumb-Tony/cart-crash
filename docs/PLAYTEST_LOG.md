@@ -1,5 +1,17 @@
 # Cart Crash — Playtest log
 
+## 2026-09-13 — m1-4 partial curve assistance
+
+User requested a middle ground between automatic curve tracking and instant curb impacts. Added speed-dependent partial caster guidance (62% road following at ≥45 m/s, more at lower speed), retaining world-space inertia and direct steering. Corrected curb response to act on road-relative velocity.
+
+Automated comparison through 610 m: no input peaks at 6.914 m lateral deviation, with 0.950 s on the rough shoulder and no crash; keyboard-style correction taps peak at 1.741 m, avoid the shoulder, and require 1.867 s total steering; slower unsteered approach peaks at 4.211 m. Early bend drift remains below 2 m, checking that it develops gradually. These bounds are now regression assertions. Full corrected safe/ramp routes pass at synthetic 30/60/120 render rates: 38.192 / 37.867 s, 0 / 163 points, no crashes. Existing jump, focus, storage, restart, max-speed ramp and simulated ten-minute regressions also pass. Human handling preference remains unclaimed.
+
+Browser hands-off inspection (1280×720): froze the ordinary simulation at 405.10 m, with no held input, lateral position -6.84 m and speed 49.32 m/s. Screenshot confirms the cart near the outside shoulder rather than centered. The inspection does not inject position/velocity; it pauses the zero-input traversal at the named distance.
+
+Corrected full ramp browser replay completed in 37.87 s with 163 points, one gap/landing/pump, zero recoveries, and no browser warnings/errors. The test supplies only ordinary digital steering/crouch inputs; it does not inject alignment or position. These checks do not stand in for user handling preference.
+
+Corrected full safe browser replay completed in 38.19 s with zero points/recoveries and no browser warnings/errors. Both complete routes were checked after the steering change.
+
 ## 2026-09-13 — m1-3 faster world-space descent
 
 User feedback: still slow; looked like the world scrolling toward the cart rather than descending a hill. Replaced the flat fixed-depth projection with an elevation-aware chase camera, near road continuing behind the cart, stronger perspective/parallax and camera lag. Increased actual starting speed/downhill acceleration/cap, made lateral motion inertial in world coordinates, and retained controllable braking and jumping. Parameters and the deliberate 35–55 s timing revision are documented in PARAMETERS_M1.md.

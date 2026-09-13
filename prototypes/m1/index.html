@@ -8,13 +8,13 @@
 <canvas id="game" aria-label="Projected downhill shopping cart course"></canvas>
 <div id="hud"><div><div class="eyebrow">SUNSET HILL / 01</div><div class="brand">CART CRASH<span style="color:#eafa68">.</span></div></div><div class="stats"><div><small>TIME</small><b id="time">0:00.00</b></div><div><small>KM/H</small><b id="speed">0</b></div><div><small>FLOW</small><b id="flow">1.00×</b></div><div><small>BANKED</small><b id="score">0</b></div></div></div>
 <div id="message">One cart. One hill. Keep your momentum.</div><div id="debug" hidden></div>
-<div id="test-tools" hidden style="position:absolute;left:20px;top:260px;background:#142a2c;padding:12px;max-width:350px"><div class="eyebrow">DEVELOPER · AUTOMATED INPUT</div><p class="fine">Replay runs do not save records.</p><button id="test-safe">Safe replay</button> <button id="test-ramp">Ramp replay</button> <button id="test-inspect">Freeze ramp apex</button><p><button id="test-soak">10-minute replay soak</button></p><div id="test-status" class="fine"></div></div>
+<div id="test-tools" hidden style="position:absolute;left:20px;top:260px;background:#142a2c;padding:12px;max-width:350px"><div class="eyebrow">DEVELOPER · AUTOMATED INPUT</div><p class="fine">Replay runs do not save records.</p><button id="test-safe">Safe replay</button> <button id="test-ramp">Ramp replay</button> <button id="test-inspect">Freeze ramp apex</button> <button id="test-coast">Freeze hands-off bend</button><p><button id="test-soak">10-minute replay soak</button></p><div id="test-status" class="fine"></div></div>
 <div id="footer"><span class="hint">A/D steer · W/S lean · SPACE hold / release jump · SHIFT brake</span><button class="secondary" id="pause">Pause / Esc</button></div><div id="progress"></div><div id="panel"></div>
 <script>
 'use strict';
 // Everything, including generated audio and geometry, stays offline in this file.
-const VERSION='m1-3', DT=1/120, LENGTH=1800;
-const P={gravity:18,downhillGravity:38,response:6,air:.2,maxSpeed:58,align:20*Math.PI/180};
+const VERSION='m1-4', DT=1/120, LENGTH=1800;
+const P={gravity:18,downhillGravity:38,casterFollow:.62,response:6,air:.2,maxSpeed:58,align:20*Math.PI/180};
 const TRACK=[{end:280,slope:.16,width:8,friction:.65,name:'START SLOPE'},{end:560,slope:.11,width:8,friction:.8,name:'BROAD TURN'},{end:700,slope:.18,width:8,friction:.65,name:'PUMP DIP'},{end:870,slope:.12,width:8,friction:.6,name:'CHOOSE YOUR LINE'},{end:960,slope:.1,width:8,friction:.6,name:'DUMPSTER GAP'},{end:1250,slope:.14,width:9,friction:.7,name:'RECOVERY RUNOFF'},{end:LENGTH,slope:.1,width:8,friction:.65,name:'HOME STRAIGHT'}];
 const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d');
 let stored={};try{stored=JSON.parse(localStorage.getItem('cart-crash-'+VERSION)||'{}')||{}}catch{}
@@ -31,7 +31,7 @@ function elevation(s){return -.18*s+8*Math.sin(s/160)-3*Math.exp(-(((s-625)/34)*
 function grade(s){return -(elevation(s+.5)-elevation(s-.5))}
 function tangent(s){return (center(s+.5)-center(s-.5))}
 function updateCamera(s,dt){const turn=Math.atan2(s.vx/Math.max(8,s.v),1);const pitch=Math.max(.035,Math.min(.16,grade(s.s)-.065));s.camX+=(center(s.s)+s.x-s.camX)*Math.min(1,dt*4);s.camYaw+=(turn-s.camYaw)*Math.min(1,dt*3);s.camPitch+=(pitch-s.camPitch)*Math.min(1,dt*2);s.camRoll+=((settings.reduced?0:-s.roll*.12)-s.camRoll)*Math.min(1,dt*4)}
-function input(){if(replay)return {steer:replay!=='safe'&&state.s>700&&state.x<3.5?1:0,lean:0,crouch:state.s>590&&state.s<650,brake:false};return {steer:(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),lean:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),crouch:keys.has('Space'),brake:keys.has('ShiftLeft')||keys.has('ShiftRight')}}
+function input(){if(replay.startsWith('coast'))return {steer:0,lean:0,crouch:false,brake:false};if(replay)return {steer:state.s>200&&state.s<700?(state.x< -1.5?1:state.x>1.5?-1:0):(replay!=='safe'&&state.s>700&&state.x<3.5?1:0),lean:0,crouch:state.s>590&&state.s<650,brake:false};return {steer:(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),lean:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),crouch:keys.has('Space'),brake:keys.has('ShiftLeft')||keys.has('ShiftRight')}}
 function notice(s,text){s.notice=text;s.noticeUntil=s.time+3}
 function tone(freq,duration=.1){if(settings.mute||!audio)return;try{let o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='triangle';g.gain.setValueAtTime(.045,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}catch{}}
 function award(s,id,points){if(s.events.has(id))return;s.events.add(id);s.pending+=Math.round(points*s.flow);s.flow=Math.min(5,s.flow+.25);s.peak=Math.max(s.peak,s.flow);s.settle=0;tone(500+s.flow*100)}
@@ -43,12 +43,12 @@ function step(s,i,dt=DT){
  let rough=Math.abs(s.x)>t.width-1.4?2.8:1;
  if(s.s>770&&s.s<1090&&s.x<1.4)rough=2.3; // readable rough safe lane versus ramp line
  s.v=Math.max(3,Math.min(P.maxSpeed,s.v+(P.downhillGravity*grade(s.s)-t.friction*rough-.002*s.v*s.v-(i.brake&&ground?12:0)-Math.abs(i.steer)*s.v*.035+(ground?i.lean*.12:0))*dt));
- const target=(ground?tangent(s.s)*s.v:s.vx)+i.steer*(ground?7.5:7.5*P.air)*(1-.35*s.v/P.maxSpeed);
+ const target=(ground?tangent(s.s)*s.v*(1-(1-P.casterFollow)*Math.min(1,s.v/45)):s.vx)+i.steer*(ground?7.5:7.5*P.air)*(1-.35*s.v/P.maxSpeed);
  s.vx+=(target-s.vx)*Math.min(1,P.response*(ground?1:P.air)*dt);s.x+=(s.vx-tangent(s.s)*s.v)*dt;
  s.roll+=(i.steer*.32*(s.v/P.maxSpeed)-s.roll)*dt*5;
  s.pitch+=(i.lean*.42-s.pitch)*dt*(ground?5:2.5);
  s.s+=s.v*dt;updateCamera(s,dt);
- if(Math.abs(s.x)>t.width){s.x=Math.sign(s.x)*t.width;s.vx*=-.2;s.v=Math.max(3,s.v-5*dt);notice(s,'CURB SCRAPE · steer toward the road to keep speed')}
+ if(Math.abs(s.x)>t.width){s.x=Math.sign(s.x)*t.width;const edgeVelocity=s.vx-tangent(s.s)*s.v;s.vx=tangent(s.s)*s.v-edgeVelocity*.15;s.v=Math.max(3,s.v-5*dt);notice(s,'CURB SCRAPE · steer toward the road to keep speed')}
  if(old<900&&s.s>=900&&s.x>1.4&&ground){s.h=1.3;s.vy=Math.min(14.5,s.v*.52)+(i.crouch?-.5:0);s.pitch=-.10;s.flight=true;notice(s,'AIRBORNE · small steering corrections; release lean to level')}
  if(old<915&&s.s>=915&&s.x>1.4)s.gapEntry=s.h>1.3;
  if(s.s>=915&&s.s<=943&&s.x>1.4&&s.h<1.3){crash(s,'DUMPSTER HIT');return}
@@ -141,9 +141,9 @@ function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">S
  $('time').textContent=clock(state.time);$('speed').textContent=Math.round(state.v*3.6);$('flow').textContent=state.flow.toFixed(2)+'×';$('score').textContent=state.bank+(state.pending?' +'+state.pending:'');$('progress').style.width=state.s/LENGTH*100+'%';$('message').textContent=state.time<state.noticeUntil?state.notice:segment(state.s).name+' · '+Math.max(0,Math.ceil(LENGTH-state.s))+' m to finish'+(state.charge?' · JUMP CHARGE '+Math.round(state.charge*100)+'%':'');frameCost=performance.now()-start;if(debug)$('debug').textContent='render '+frameCost.toFixed(2)+' ms | sim '+simCost.toFixed(2)+' ms\ns '+state.s.toFixed(2)+' x '+state.x.toFixed(2)+' v '+state.v.toFixed(2)+'\nh '+state.h.toFixed(2)+' vy '+state.vy.toFixed(2)+' pitch '+(state.pitch*180/Math.PI).toFixed(1)+'°\n'+VERSION+' | events '+state.events.size+' | held '+keys.size;
  }
 
- function frame(now){let delta=last?Math.min(.25,(now-last)/1000):0;last=now;if(mode==='play'){if(delta){perfFrames++;perfSeconds+=delta}acc+=delta;let n=0,begin=performance.now();while(acc>=DT&&n<8){step(state,input());acc-=DT;n++;if(replay==='inspect'&&state.h>4&&state.vy<=0){replay='ramp';mode='pause';acc=0;break}if(state.s>=LENGTH){finish();break}}if(n===8&&acc>=DT)acc=0;simCost=performance.now()-begin}draw();perfMax=Math.max(perfMax,frameCost+simCost);if(replay)$('test-status').textContent='Automated '+replay+' | '+(perfFrames/Math.max(.01,perfSeconds)).toFixed(1)+' rendered FPS | max work '+perfMax.toFixed(2)+' ms | '+soakRuns+' soak finishes | '+(soakStart?((performance.now()-soakStart)/1000).toFixed(0):'0')+' wall seconds';requestAnimationFrame(frame)}
+ function frame(now){let delta=last?Math.min(.25,(now-last)/1000):0;last=now;if(mode==='play'){if(delta){perfFrames++;perfSeconds+=delta}acc+=delta;let n=0,begin=performance.now();while(acc>=DT&&n<8){step(state,input());acc-=DT;n++;if(replay==='coast'&&state.s>=405){replay='coast-paused';mode='pause';acc=0;break}if(replay==='inspect'&&state.h>4&&state.vy<=0){replay='ramp';mode='pause';acc=0;break}if(state.s>=LENGTH){finish();break}}if(n===8&&acc>=DT)acc=0;simCost=performance.now()-begin}draw();perfMax=Math.max(perfMax,frameCost+simCost);if(replay)$('test-status').textContent='Automated '+replay+' | '+(perfFrames/Math.max(.01,perfSeconds)).toFixed(1)+' rendered FPS | max work '+perfMax.toFixed(2)+' ms | '+soakRuns+' soak finishes | '+(soakStart?((performance.now()-soakStart)/1000).toFixed(0):'0')+' wall seconds';requestAnimationFrame(frame)}
  // A small explicit test seam, with no networking, hidden gameplay or test-only physics.
  window.CartCrash={VERSION,DT,P,TRACK,LENGTH,elevation,grade,fresh,step,segment,restart,get state(){return state},get mode(){return mode},get held(){return keys.size},get metrics(){return {frameCost,simCost}},frame};
- if(typeof location!=='undefined'&&new URLSearchParams(location.search).has('test')){$('test-tools').hidden=false;for(const kind of ['safe','ramp','soak','inspect'])$('test-'+kind).onclick=()=>{restart();replay=kind;soakStart=performance.now();soakRuns=perfFrames=perfSeconds=perfMax=0}}
+ if(typeof location!=='undefined'&&new URLSearchParams(location.search).has('test')){$('test-tools').hidden=false;for(const kind of ['safe','ramp','soak','inspect','coast'])$('test-'+kind).onclick=()=>{restart();replay=kind;soakStart=performance.now();soakRuns=perfFrames=perfSeconds=perfMax=0}}
  showPanel();requestAnimationFrame(frame);
 </script></body></html>

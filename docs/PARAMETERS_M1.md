@@ -1,6 +1,14 @@
 # M1 implementation and tuning notes
 
-Current build/physics/storage version: `m1-3` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+Current build/physics/storage version: `m1-4` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+
+## Partial caster guidance through curves
+
+User requested an intermediate behavior between automatic line-holding and immediately driving straight into a curb. The caster's target world lateral velocity now follows only a fraction of road tangent: `1 - 0.38 × min(1, speed / 45)`. At 45 m/s and above this is 62% natural following; slower approaches get more help. The player supplies the missing turn using the existing steering input. This remains deliberate arcade assistance, not a claim about a real shopping cart's tire forces.
+
+No-input first-bend traversal drifts 6.91 m from center (8 m half-width), spends 0.95 s on the rough shoulder, and does not crash. Digital correction taps around a ±1.5 m band limit deviation to 1.74 m with 1.87 s of total steering over the 16.07 s start/bend traversal. A controlled slower approach peaks at 4.21 m without steering. Curb response reflects road-relative lateral velocity, preserving road motion rather than incorrectly reversing the entire world velocity.
+
+Safe/ramp developer replays now use those same explicit correction taps in the bend; their successful routes are no longer evidence of no-input line holding. `Freeze hands-off bend` is a separate zero-input replay which pauses at 405 m for inspection; Escape continues. Rules/records are versioned separately.
 
 ## Faster descent and world-space chase camera
 
