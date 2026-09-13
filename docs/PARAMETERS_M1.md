@@ -1,6 +1,6 @@
 # M1 implementation and tuning notes
 
-Current build/physics/storage version: `m1-5` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+Current build/physics/storage version: `m1-6` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
 
 ## Quick charge, forgiving ramp entry, and visual detail
 
@@ -70,3 +70,9 @@ The ramp impulse is deliberately arcade, capped to keep maximum-speed landings r
 Backquote toggles the physical-state and frame-cost overlay. `?test=1` reveals explicitly labeled safe/ramp replay and real-time ten-minute soak buttons. Start the game, then select a replay. These supply the same deterministic input trace used in the test suite through the ordinary frame/simulation loop; they do not save records. R exits replay into normal play. The soak repeats full ramp routes until at least 600 wall seconds have elapsed and the current route finishes. This is automation, not human feel testing.
 
 The frame loop uses a 1/120 s accumulator, eight-step cap, discarded excessive backlog, and focus/visibility pause with cleared input. Blocked localStorage falls back to memory. No network request, asset dependency, install, or build is required by the game itself.
+
+## Cart and challenges: m1-6
+
+Three contracts share Sunset Hill: dash under 40 seconds; slalom through six gates; air requires a gap, clean landing, and zero recoveries. Gates at 180, 330, 520, 720, 1150 and 1440 m accept 1.8 m lateral error and height under 2.2 m. Swept crossings prevent tunneling; recovery cannot farm gates. Each gate awards 50 through FLOW. Per-challenge records and badges save locally. Replays never save progress. Select slalom, start riding, then use Slalom replay in developer mode.
+
+Cart: chromed chassis, deep mesh basket, corner guards, caster forks/hubs, front plate, and redesigned helmeted rider with backpack. Charge posture, steering lean, and landing compression animate the model. Course physics and ramp forgiveness are unchanged.

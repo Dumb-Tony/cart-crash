@@ -23,3 +23,7 @@ Verify that a ramp hit at maximum reachable speed cannot tunnel through ground, 
 
 ## Decision rule and deliverables
 Deliver one offline index.html, a short test record, parameter notes and known limitations. If players cannot read depth, adjust camera before changing physics. If speed feels automatic, strengthen line-dependent friction/pumping. If steering feels random, remove wobble entirely. Iterate the same hill; do not add courses to obtain a pass.
+
+## Authorized expansion: 2026-09-13
+
+The user explicitly requested better cart graphics and continued game building. This supersedes the original content hold for the three Sunset Hill challenges in m1-6. Original human mechanic gates remain pending and are not inferred from automated testing.

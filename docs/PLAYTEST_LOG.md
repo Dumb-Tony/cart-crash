@@ -114,3 +114,11 @@ Recruit five fresh players if available; essential bindings, one practice run, f
 - Retest evidence:
 - Decision: proceed / iterate / park:
 - Unresolved questions and next bounded experiment:
+
+## 2026-09-13: m1-6 cart and three challenges
+
+User requested improved cart graphics and continued game development. Implemented chrome frame/mesh basket/caster/rider art and three contracts on the existing hill, with saved completion badges and separate records. This is explicitly authorized content expansion; human enjoyment/comprehension gates remain pending.
+
+Node regressions pass: full slalom at synthetic 30/60/120 FPS gives six gates, 300 points, zero recoveries, 39.0417 seconds; missed-gate and repeat-gate cases checked. Badge award/reload/reset and air challenge recovery failure checked. Existing safe/ramp routes remain 38.192/37.867 seconds, and all 63 ramp timing/lane combinations pass. Simulated ten-minute soak passes (15 finishes); this is not a new ten-minute real browser soak.
+
+In-app browser at 1280x720: inspected cart rendering. Normal dash run with no steering completed in 38.16 seconds, awarded a badge, and retained it after reload. Automated slalom through actual challenge selection completed 6/6, 300 points in 39.04 seconds. Automated Air mail completed in 37.87 seconds with one gap, clean landing and pump, zero recoveries, 163 points. Replay results did not overwrite dash records or save challenge badges. Browser warning/error logs were empty. Found and fixed a developer overlay intercepting menu choices; replay tools now hide when a menu is open, and selection was rerun successfully. These are browser functional checks and automated input replays, not fresh-player feel validation.
