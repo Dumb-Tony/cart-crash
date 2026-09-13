@@ -6,6 +6,8 @@
 Does steering, pumping and landing a shopping cart on one hill create understandable momentum mastery? Players should retry to improve their line even with flat colors and no unlocks.
 
 ## Exact playable slice
+
+M1-3 pace revision: following user feedback that the run was too slow and looked like a conveyor belt, the same hill now targets 35–55 seconds with world elevation and a chase camera. This supersedes the original timing hypothesis below; no new course was added.
 A 45–75 second projected downhill course: start slope, broad turn, one pumpable dip, one ramp, optional dumpster gap, recovery runoff, finish. One cart; steer, lean, crouch/release, brake, restart. Bail may be omitted until it tests recovery rather than adds complexity. Show speed, elapsed time and a tiny FLOW counter for gap/clean landing events. Full crash resets to the last safe ground point with a two-second time cost; never restart automatically.
 
 ## Implementation specification

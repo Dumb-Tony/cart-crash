@@ -1,6 +1,14 @@
 # M1 implementation and tuning notes
 
-Current build/physics/storage version: `m1-2` (2026-09-13). The tuning table below describes the initial M1; the following revision supersedes its off-window pump-only behavior.
+Current build/physics/storage version: `m1-3` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+
+## Faster descent and world-space chase camera
+
+User feedback identified slow pace and a conveyor-belt presentation. The hill now has continuous world elevation (about 332 m total descent), including broad rolls and a compression dip. Acceleration uses the derivative of that same elevation profile. Longitudinal downhill acceleration uses a 38 coefficient, initial speed is 14 m/s, speed cap 58 m/s, drag coefficient .002 and brake force 12. Jump gravity stays 18 to preserve controllable airtime. Scripted completions now take 38.050 s safe / 37.767 s ramp: approximately 40–42% shorter than m1-2. The revised M1 duration check is 35–55 s, intentionally superseding the original 45–75 s hypothesis in response to the request for more pace.
+
+Projection now transforms world coordinates through an actual elevated chase-camera position, yaw and pitch, then performs perspective division. Camera position is 18 m behind and 9 m above road height, replacing the old fixed 42-unit projection. Road geometry continues 12 m behind the cart, with 500 m forward visibility. World elevation affects road, scenery and airborne position consistently. Focal length widens slightly with speed. Smoothed camera position/yaw trails the cart; pitch follows grade, and distant scenery pans with the view. Reduced effects disables small banking while retaining necessary terrain perspective.
+
+Lateral velocity is now carried in world coordinates; road-relative position changes by the difference between cart and road motion. Finite steering response produces predictable drift through bends, instead of maintaining a fixed offset automatically. Ground caster alignment remains assisted; this is still a bounded arcade model, not a rigid-body vehicle simulation. World lateral momentum persists in air. Ground steering authority rises from 5.8 to 7.5 to remain useful at the higher pace. New regressions check actual descent, bend drift/camera heading, effective braking and maximum-cap-speed ramp traversal. Records use a new version key.
 
 ## User-requested jump and visual revision
 

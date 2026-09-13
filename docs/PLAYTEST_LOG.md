@@ -1,5 +1,13 @@
 # Cart Crash — Playtest log
 
+## 2026-09-13 — m1-3 faster world-space descent
+
+User feedback: still slow; looked like the world scrolling toward the cart rather than descending a hill. Replaced the flat fixed-depth projection with an elevation-aware chase camera, near road continuing behind the cart, stronger perspective/parallax and camera lag. Increased actual starting speed/downhill acceleration/cap, made lateral motion inertial in world coordinates, and retained controllable braking and jumping. Parameters and the deliberate 35–55 s timing revision are documented in PARAMETERS_M1.md.
+
+Final Node regressions: safe 38.050 s / ramp 37.767 s, identical across synthetic 30/60/120 render schedules, 0 / 163 points, no recoveries. New checks establish over 300 m of actual course elevation drop, variable grade, nonzero bend drift/camera heading and braking from 50 m/s to below 40 m/s in two seconds. Maximum-speed ramp check now uses the new 58 m/s cap. Prior jump buffering, recovery, banking, focus, storage, restart and ten-minute simulated stability checks also pass (15 completed simulated routes). This is automated evidence, not proof that the subjective motion-feel gate passes.
+
+Final browser replays, 1280×720 on the previously recorded PC, mute/reduced effects enabled: ramp 37.77 s / 163 banked points / zero recoveries, 126.8 average rendered FPS, 3.10 ms maximum measured JS work; safe 38.05 s / zero points/recoveries, 106.4 average rendered FPS, 3.30 ms maximum JS work. Browser warnings/errors were empty after both. Screenshots inspected the closer road perspective and full foreground coverage. Actual human motion-feel testing is still needed; no new real-time ten-minute soak is claimed for this revision.
+
 ## 2026-09-13 — m1-2 jump and sunset visual revision
 
 User feedback: the aesthetic needed substantial work and the jump did not actually jump. The previous Space behavior only boosted in the dip; it was not a general jump. Implemented real grounded tap/charged hops and buffered releases between frames, while keeping air releases powerless and preserving the ramp route. This supersedes the pump-only M1 hypothesis. Reworked the environment, cart/rider, ramp/bin presentation, HUD/menu palette, and explicit airborne separation from a grounded shadow.

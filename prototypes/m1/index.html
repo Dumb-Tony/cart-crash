@@ -13,8 +13,8 @@
 <script>
 'use strict';
 // Everything, including generated audio and geometry, stays offline in this file.
-const VERSION='m1-2', DT=1/120, LENGTH=1800;
-const P={gravity:18,response:6,air:.2,maxSpeed:42,align:20*Math.PI/180};
+const VERSION='m1-3', DT=1/120, LENGTH=1800;
+const P={gravity:18,downhillGravity:38,response:6,air:.2,maxSpeed:58,align:20*Math.PI/180};
 const TRACK=[{end:280,slope:.16,width:8,friction:.65,name:'START SLOPE'},{end:560,slope:.11,width:8,friction:.8,name:'BROAD TURN'},{end:700,slope:.18,width:8,friction:.65,name:'PUMP DIP'},{end:870,slope:.12,width:8,friction:.6,name:'CHOOSE YOUR LINE'},{end:960,slope:.1,width:8,friction:.6,name:'DUMPSTER GAP'},{end:1250,slope:.14,width:9,friction:.7,name:'RECOVERY RUNOFF'},{end:LENGTH,slope:.1,width:8,friction:.65,name:'HOME STRAIGHT'}];
 const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d');
 let stored={};try{stored=JSON.parse(localStorage.getItem('cart-crash-'+VERSION)||'{}')||{}}catch{}
@@ -22,10 +22,15 @@ let settings={mute:stored.mute!==false,reduced:stored.reduced!==false},best={tim
 function save(){try{localStorage.setItem('cart-crash-'+VERSION,JSON.stringify({...settings,...best}))}catch{}}
 let keys=new Set(),state,mode='start',acc=0,last=0,debug=false,frameCost=0,simCost=0,audio;
 let replay='',soakStart=0,soakRuns=0,perfFrames=0,perfSeconds=0,perfMax=0;
-function fresh(){return {s:0,x:0,v:8,vx:0,h:0,vy:0,pitch:0,roll:0,time:0,charge:0,held:false,bank:0,pending:0,flow:1,peak:1,settle:0,crashes:0,safeS:0,safeX:0,events:new Set(),gapEntry:false,clean:0,gaps:0,pumps:0,notice:'Follow the road. The right-hand ramp is optional.',noticeUntil:5,flight:false};}
+function fresh(){return {s:0,x:0,v:14,vx:0,h:0,vy:0,pitch:0,roll:0,time:0,charge:0,held:false,bank:0,pending:0,flow:1,peak:1,settle:0,crashes:0,safeS:0,safeX:0,camX:0,camYaw:0,camPitch:.075,camRoll:0,events:new Set(),gapEntry:false,clean:0,gaps:0,pumps:0,notice:'Point it downhill. Brake before the bend.',noticeUntil:5,flight:false};}
 state=fresh();
 function segment(s){return TRACK.find(t=>s<t.end)||TRACK[TRACK.length-1]}
 function center(s){return 18*Math.sin(Math.max(0,Math.min(1,(s-230)/350))*Math.PI)**2}
+// World-space course, with long rolls plus the authored compression dip.
+function elevation(s){return -.18*s+8*Math.sin(s/160)-3*Math.exp(-(((s-625)/34)**2))}
+function grade(s){return -(elevation(s+.5)-elevation(s-.5))}
+function tangent(s){return (center(s+.5)-center(s-.5))}
+function updateCamera(s,dt){const turn=Math.atan2(s.vx/Math.max(8,s.v),1);const pitch=Math.max(.035,Math.min(.16,grade(s.s)-.065));s.camX+=(center(s.s)+s.x-s.camX)*Math.min(1,dt*4);s.camYaw+=(turn-s.camYaw)*Math.min(1,dt*3);s.camPitch+=(pitch-s.camPitch)*Math.min(1,dt*2);s.camRoll+=((settings.reduced?0:-s.roll*.12)-s.camRoll)*Math.min(1,dt*4)}
 function input(){if(replay)return {steer:replay!=='safe'&&state.s>700&&state.x<3.5?1:0,lean:0,crouch:state.s>590&&state.s<650,brake:false};return {steer:(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),lean:(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),crouch:keys.has('Space'),brake:keys.has('ShiftLeft')||keys.has('ShiftRight')}}
 function notice(s,text){s.notice=text;s.noticeUntil=s.time+3}
 function tone(freq,duration=.1){if(settings.mute||!audio)return;try{let o=audio.createOscillator(),g=audio.createGain();o.frequency.value=freq;o.type='triangle';g.gain.setValueAtTime(.045,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+duration);o.connect(g).connect(audio.destination);o.start();o.stop(audio.currentTime+duration)}catch{}}
@@ -37,12 +42,12 @@ function step(s,i,dt=DT){
  if(s.held&&!i.crouch){if(ground){const power=s.charge;s.h=.02;s.vy=5.5+3*power;s.flight=true;notice(s,'HOP! · release lean to land level');tone(390);if(s.s>=635&&s.s<=690&&power>.15){s.v=Math.min(P.maxSpeed,s.v+4*power);s.pumps++;notice(s,'PUMP + HOP! · speed carried out of the dip');tone(420)}}s.charge=0}if(!ground)s.charge=0;s.held=i.crouch;
  let rough=Math.abs(s.x)>t.width-1.4?2.8:1;
  if(s.s>770&&s.s<1090&&s.x<1.4)rough=2.3; // readable rough safe lane versus ramp line
- s.v=Math.max(3,Math.min(P.maxSpeed,s.v+(P.gravity*t.slope-t.friction*rough-.0016*s.v*s.v-(i.brake&&ground?10:0)-Math.abs(i.steer)*s.v*.035+(ground?i.lean*.12:0))*dt));
- const target=i.steer*(ground?5.8:5.8*P.air)*(1-.35*s.v/P.maxSpeed);
- s.vx+=(target-s.vx)*Math.min(1,P.response*(ground?1:P.air)*dt);s.x+=s.vx*dt;
+ s.v=Math.max(3,Math.min(P.maxSpeed,s.v+(P.downhillGravity*grade(s.s)-t.friction*rough-.002*s.v*s.v-(i.brake&&ground?12:0)-Math.abs(i.steer)*s.v*.035+(ground?i.lean*.12:0))*dt));
+ const target=(ground?tangent(s.s)*s.v:s.vx)+i.steer*(ground?7.5:7.5*P.air)*(1-.35*s.v/P.maxSpeed);
+ s.vx+=(target-s.vx)*Math.min(1,P.response*(ground?1:P.air)*dt);s.x+=(s.vx-tangent(s.s)*s.v)*dt;
  s.roll+=(i.steer*.32*(s.v/P.maxSpeed)-s.roll)*dt*5;
  s.pitch+=(i.lean*.42-s.pitch)*dt*(ground?5:2.5);
- s.s+=s.v*dt;
+ s.s+=s.v*dt;updateCamera(s,dt);
  if(Math.abs(s.x)>t.width){s.x=Math.sign(s.x)*t.width;s.vx*=-.2;s.v=Math.max(3,s.v-5*dt);notice(s,'CURB SCRAPE · steer toward the road to keep speed')}
  if(old<900&&s.s>=900&&s.x>1.4&&ground){s.h=1.3;s.vy=Math.min(14.5,s.v*.52)+(i.crouch?-.5:0);s.pitch=-.10;s.flight=true;notice(s,'AIRBORNE · small steering corrections; release lean to level')}
  if(old<915&&s.s>=915&&s.x>1.4)s.gapEntry=s.h>1.3;
@@ -57,7 +62,7 @@ function togglePause(){if(mode==='play'){mode='pause';keys.clear();state.held=fa
 function finish(){state.s=LENGTH;mode='result';keys.clear();state.bank+=state.pending;state.pending=0;if(replay==='soak'){soakRuns++;if(performance.now()-soakStart<600000){restart();replay='soak';return}}if(!replay){best.time=best.time===null?state.time:Math.min(best.time,state.time);best.score=Math.max(best.score,state.bank);save()}showPanel()}
 function clock(v){if(v===null)return '—';return Math.floor(v/60)+':'+(v%60).toFixed(2).padStart(5,'0')}
 function options(){return '<div class="options"><label><input id="mute" type="checkbox" '+(settings.mute?'checked':'')+'> Mute sound</label><label><input id="reduced" type="checkbox" '+(settings.reduced?'checked':'')+'> Reduced effects</label></div>'}
-function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">SUNSET RUN / SHOPPING CART STUNTS</div><h1>ONE VERY<br>BAD IDEA.</h1><p>Get the shopping cart to the bottom. Hold Space and release to hop. Pump the striped dip for extra speed, then take the safe street or launch from the right-hand ramp.</p><div class="keys"><div><kbd>A</kbd> <kbd>D</kbd> <span>Steer / arrows</span></div><div><kbd>SHIFT</kbd> <span>Brake</span></div><div><kbd>SPACE</kbd> <span>Hold / release to jump</span></div><div><kbd>W</kbd> <kbd>S</kbd> <span>Lean / arrows</span></div></div><p class="fine">One hill · around one minute · keyboard required. Stay left of the ramp for an easy first run. A crash recovers you with a 2-second cost.</p>'+options()+'<div class="actions"><button id="go">Get in the cart →</button><button class="secondary" id="reset">Reset local records</button></div>'}
+function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">SUNSET RUN / SHOPPING CART STUNTS</div><h1>ONE VERY<br>BAD IDEA.</h1><p>Get the shopping cart to the bottom. Hold Space and release to hop. Pump the striped dip for extra speed, then take the safe street or launch from the right-hand ramp.</p><div class="keys"><div><kbd>A</kbd> <kbd>D</kbd> <span>Steer / arrows</span></div><div><kbd>SHIFT</kbd> <span>Brake</span></div><div><kbd>SPACE</kbd> <span>Hold / release to jump</span></div><div><kbd>W</kbd> <kbd>S</kbd> <span>Lean / arrows</span></div></div><p class="fine">One hill · about 40 seconds · keyboard required. Stay left of the ramp for an easy first run. A crash recovers you with a 2-second cost.</p>'+options()+'<div class="actions"><button id="go">Get in the cart →</button><button class="secondary" id="reset">Reset local records</button></div>'}
  else if(mode==='pause'){body='<div class="eyebrow">CART SAFELY PARKED</div><h2>Take a breath.</h2><p>The timer is paused. Resume when you’re ready.</p>'+options()+'<div class="actions"><button id="resume">Resume →</button><button class="secondary" id="go">Restart / R</button></div>'}
  else{body='<div class="eyebrow">HILL COMPLETE / M1</div><h2>Still in one piece.</h2><div class="result-grid"><div><small>YOUR TIME</small><b>'+clock(state.time)+'</b></div><div><small>BANKED SCORE</small><b>'+state.bank+'</b></div><div><small>BEST TIME · THIS RULESET</small><b>'+clock(best.time)+'</b></div><div><small>BEST SCORE</small><b>'+best.score+'</b></div></div><p>'+state.gaps+' gap · '+state.clean+' clean landing · '+state.pumps+' pump · '+state.crashes+' recoveries<br>Biggest FLOW '+state.peak.toFixed(2)+'×. Recovery penalties included in time.</p><p class="fine">'+(state.gaps?'Try retaining more speed through the turn.':'Try the right ramp next time. Crouch in the dip; release at its striped exit.')+'</p>'+options()+'<div class="actions"><button id="go">Another bad idea / R →</button><button class="secondary" id="home">Start screen</button></div>'}
  $('panel').innerHTML='<section class="card">'+body+'</section>';$('panel').className='';if($('go'))$('go').onclick=restart;if($('resume'))$('resume').onclick=togglePause;if($('home'))$('home').onclick=()=>{mode='start';showPanel()};if($('reset'))$('reset').onclick=()=>{best={time:null,score:0};save();$('reset').textContent='Records reset'};for(const name of ['mute','reduced'])if($(name))$(name).onchange=e=>{settings[name]=e.target.checked;save()};const focus=$('go')||$('resume');if(focus)focus.focus();}
@@ -66,22 +71,30 @@ function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">S
  window.addEventListener('keyup',e=>{if(e.code==='Space'&&keys.has('Space')&&mode==='play')state.held=true;keys.delete(e.code)});window.addEventListener('blur',()=>{keys.clear();if(mode==='play')togglePause()});document.addEventListener('visibilitychange',()=>{if(document.hidden&&mode==='play')togglePause()});
  let W=1280,H=720;
  function resize(){W=innerWidth;H=innerHeight;const d=Math.min(devicePixelRatio||1,2);canvas.width=W*d;canvas.height=H*d;ctx.setTransform(d,0,0,d,0,0)}window.addEventListener('resize',resize);resize();
- function proj(s,x,h=0){const d=s-state.s,scale=100/(d+42);return {x:W/2+(x+center(s)-center(state.s)-state.x*.65)*scale*W/150,y:H*.29+H*.64*42/(d+42)-h*scale*H/110,k:scale*W/150}}
+ function proj(s,x,h=0){
+ const yaw=state.camYaw,pitch=state.camPitch,back=18;
+ const dx=center(s)+x-(state.camX-back*Math.sin(yaw)),dz=s-(state.s-back*Math.cos(yaw));
+ const dy=elevation(s)+h-elevation(state.s)-9-state.h*.08;
+ const side=dx*Math.cos(yaw)-dz*Math.sin(yaw),forward=dx*Math.sin(yaw)+dz*Math.cos(yaw);
+ const up=dy*Math.cos(pitch)+forward*Math.sin(pitch),depth=Math.max(3,forward*Math.cos(pitch)-dy*Math.sin(pitch));
+ const k=H*(1.42-.12*Math.min(1,state.v/P.maxSpeed))/depth,px=side*k,py=-up*k;
+ return {x:W/2+px*Math.cos(state.camRoll)-py*Math.sin(state.camRoll),y:H*.34+px*Math.sin(state.camRoll)+py*Math.cos(state.camRoll),k};
+ }
  function poly(points,color){ctx.fillStyle=color;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fill()}
  function quad(a,b,l,r,color,h=0){poly([proj(a,l,h),proj(a,r,h),proj(b,r,h),proj(b,l,h)],color);ctx.strokeStyle=color;ctx.lineWidth=1.2;ctx.stroke()}
  function label(s,x,text,color='#eafa68'){if(s<state.s+8||s>state.s+230)return;const p=proj(s,x);ctx.font='800 '+Math.max(10,Math.min(23,p.k*1.9))+'px system-ui';ctx.textAlign='center';const width=ctx.measureText(text).width+16;ctx.fillStyle='#142a2c';ctx.fillRect(p.x-width/2,p.y-30,width,25);ctx.fillStyle=color;ctx.fillText(text,p.x,p.y-12)}
  function draw(){
- const start=performance.now();
+ const start=performance.now(),skyShift=-(state.camPitch-.075)*H*.8;
  const sky=ctx.createLinearGradient(0,0,0,H*.6);sky.addColorStop(0,'#727baf');sky.addColorStop(.55,'#edaa9b');sky.addColorStop(1,'#ffdaa9');ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
- ctx.fillStyle='#ffe8b5';ctx.beginPath();ctx.arc(W*.77,H*.21,H*.083,0,Math.PI*2);ctx.fill();
- for(let layer=0;layer<3;layer++){ctx.fillStyle=['#b58aa1','#957c99','#727b8c'][layer];ctx.beginPath();ctx.moveTo(0,H*.4);for(let x=0;x<=W+20;x+=20)ctx.lineTo(x,H*(.30+layer*.035+.025*Math.sin(x/(140+layer*50)+layer*2)));ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill()}
- ctx.fillStyle='#668776';ctx.fillRect(0,H*.385,W,H);
+ ctx.fillStyle='#ffe8b5';ctx.beginPath();ctx.arc(W*.77-state.camYaw*W*.65,H*.21+skyShift,H*.083,0,Math.PI*2);ctx.fill();
+ for(let layer=0;layer<3;layer++){ctx.fillStyle=['#b58aa1','#957c99','#727b8c'][layer];ctx.beginPath();ctx.moveTo(0,H*.4);for(let x=0;x<=W+20;x+=20)ctx.lineTo(x,H*(.30+layer*.035+.025*Math.sin(x/(140+layer*50)+layer*2+state.camYaw*3))+skyShift);ctx.lineTo(W,H);ctx.lineTo(0,H);ctx.fill()}
+ ctx.fillStyle='#668776';ctx.fillRect(0,H*.385+skyShift,W,H);
  // Far skyline, deliberately below the horizon so the road stays easy to read.
- for(let j=0;j<24;j++){let x=j*W/23,y=H*(.34-.03*Math.sin(j*6));ctx.fillStyle=j%2?'#758082':'#8c858e';ctx.fillRect(x,y,W/36,H*.07)}
- const far=Math.min(LENGTH+100,state.s+360);
+ for(let j=0;j<24;j++){let x=j*W/23-state.camYaw*W*.65,y=H*(.34-.03*Math.sin(j*6))+skyShift;ctx.fillStyle=j%2?'#758082':'#8c858e';ctx.fillRect(x,y,W/36,H*.07)}
+ const far=Math.min(LENGTH+100,state.s+500);
  function box(s,x,width,height,depth,color){const a=proj(s,x),b=proj(s,x+width),c=proj(s+depth,x+width),d=proj(s+depth,x);const up=p=>({x:p.x,y:p.y-height*p.k});poly([a,b,up(b),up(a)],color);poly([b,c,up(c),up(b)],'#435a6080');poly([up(a),up(b),up(c),up(d)],'#ffdeb4');return {a,b,top:up(a)}}
  function tree(s,x,seed){const p=proj(s,x),k=p.k;ctx.fillStyle='#354d4444';ctx.beginPath();ctx.ellipse(p.x+3*k,p.y,5*k,1.1*k,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#67554b';ctx.fillRect(p.x-.38*k,p.y-6*k,.76*k,6*k);for(let j=0;j<3;j++){ctx.fillStyle=['#41695b','#5e8568','#82a074'][j];ctx.beginPath();ctx.ellipse(p.x+(j-1)*1.5*k,p.y-(7+j%2)*k,3*k,4*k,seed*.1,0,Math.PI*2);ctx.fill()}}
- for(let b=far;b>state.s;b-=4){let a=Math.max(state.s,b-4),t=segment(a),grid=Math.floor(a/4),end=b+.12;
+ for(let b=far;b>state.s-12;b-=4){let a=Math.max(state.s-12,b-4),t=segment(a),grid=Math.floor(a/4),end=b+.12;
  quad(a,end,-t.width-5,-t.width,'#bdad93');quad(a,end,t.width,t.width+5,'#bdad93');quad(a,end,-t.width-1,-t.width,'#f4dcb4');quad(a,end,t.width,t.width+1,'#f4dcb4');quad(a,end,-t.width,t.width,'#3c4656');
  quad(a,end,-t.width,-t.width+.15,'#eea95c');quad(a,end,t.width-.15,t.width,'#eea95c');
  if(grid%6<3){quad(a,end,-.16,-.04,'#d6c7a3');quad(a,end,.04,.16,'#d6c7a3')}
@@ -97,7 +110,7 @@ function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">S
  }
  label(580,0,'LOAD UP · HOLD SPACE');label(645,0,'RELEASE · BOOST + HOP');label(795,-4,'← SAFE STREET');label(825,4.5,'STUNT LINE →');label(895,4.5,'RAMP / KEEP SPEED');label(985,11,'LANDING ZONE');label(LENGTH,0,'FINISH');
  const ground=proj(state.s,state.x),unit=Math.min(W/1000,H/700),rampLift=state.h===0&&state.s>880&&state.s<900&&state.x>1.4?(state.s-880)*.065:0;
- const lift=(state.h+rampLift)*32*unit;
+ const lift=ground.y-proj(state.s,state.x,state.h+rampLift).y;
  ctx.fillStyle='#172d3f55';ctx.beginPath();ctx.ellipse(ground.x+8*unit,ground.y+3*unit,(45-state.h*2)*unit,11*unit,0,0,Math.PI*2);ctx.fill();
  if(state.h>.1){ctx.strokeStyle='#ffe4b477';ctx.lineWidth=2;ctx.setLineDash([3,7]);ctx.beginPath();ctx.moveTo(ground.x,ground.y-10*unit);ctx.lineTo(ground.x,ground.y-lift);ctx.stroke();ctx.setLineDash([])}
  ctx.save();ctx.translate(ground.x,ground.y-18*unit-lift);ctx.scale(unit,unit);ctx.rotate(state.roll*.65);
@@ -130,7 +143,7 @@ function showPanel(){let body='';if(mode==='start'){body='<div class="eyebrow">S
 
  function frame(now){let delta=last?Math.min(.25,(now-last)/1000):0;last=now;if(mode==='play'){if(delta){perfFrames++;perfSeconds+=delta}acc+=delta;let n=0,begin=performance.now();while(acc>=DT&&n<8){step(state,input());acc-=DT;n++;if(replay==='inspect'&&state.h>4&&state.vy<=0){replay='ramp';mode='pause';acc=0;break}if(state.s>=LENGTH){finish();break}}if(n===8&&acc>=DT)acc=0;simCost=performance.now()-begin}draw();perfMax=Math.max(perfMax,frameCost+simCost);if(replay)$('test-status').textContent='Automated '+replay+' | '+(perfFrames/Math.max(.01,perfSeconds)).toFixed(1)+' rendered FPS | max work '+perfMax.toFixed(2)+' ms | '+soakRuns+' soak finishes | '+(soakStart?((performance.now()-soakStart)/1000).toFixed(0):'0')+' wall seconds';requestAnimationFrame(frame)}
  // A small explicit test seam, with no networking, hidden gameplay or test-only physics.
- window.CartCrash={VERSION,DT,P,TRACK,LENGTH,fresh,step,segment,restart,get state(){return state},get mode(){return mode},get held(){return keys.size},get metrics(){return {frameCost,simCost}},frame};
+ window.CartCrash={VERSION,DT,P,TRACK,LENGTH,elevation,grade,fresh,step,segment,restart,get state(){return state},get mode(){return mode},get held(){return keys.size},get metrics(){return {frameCost,simCost}},frame};
  if(typeof location!=='undefined'&&new URLSearchParams(location.search).has('test')){$('test-tools').hidden=false;for(const kind of ['safe','ramp','soak','inspect'])$('test-'+kind).onclick=()=>{restart();replay=kind;soakStart=performance.now();soakRuns=perfFrames=perfSeconds=perfMax=0}}
  showPanel();requestAnimationFrame(frame);
 </script></body></html>
