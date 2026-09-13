@@ -51,3 +51,30 @@ s=g.fresh();let finishes=0;for(let i=0;i<72000;i++){g.step(s,route(s,true));asse
 const storage=boot(false,{time:-3,score:'invalid'});storage.g.restart();storage.g.state.s=1799.99;storage.g.frame(1);storage.g.frame(34);assert(storage.persisted.time>0);assert.equal(storage.persisted.score,0);storage.els.mute.onchange({target:{checked:false}});assert.equal(storage.persisted.mute,false);const restored=boot(false,storage.persisted);assert(restored.els.panel.innerHTML.includes('id="mute" type="checkbox" >'));restored.els.reset.onclick();assert.equal(restored.persisted.time,null);assert.equal(restored.persisted.score,0);
 assert(!/<script[^>]+src=|fetch\(|https?:\/\//.test(html),'offline dependency contract');
 console.log(JSON.stringify({routeResults:results,assertions:'PASS: max-speed sweep, air pump, crashes, unique events, 20 restarts, focus, backlog, result/retry, blocked storage, 10-minute simulated soak',simulatedSoakFinishes:finishes},null,2));
+// Career expansion: all authored courses with a stock and fully upgraded cart.
+const courseRuns=[];
+for(const upgrades of [[],['bearings','steering','suspension']])for(const id of ['sunset','market','quarry'])for(const fps of [30,60,120]){
+ const t=boot(false,{career:{bolts:0,completed:['sunset','market'],upgrades}}),game=t.g;assert(game.selectCourse(id));let st=game.fresh(),peak=0;
+ for(let frame=0;frame<fps*150&&st.s<game.LENGTH;frame++)for(let n=0;n<120/fps&&st.s<game.LENGTH;n++){game.step(st,game.courseInput(st));peak=Math.max(peak,st.v);assert(Number.isFinite(st.s+st.x+st.v+st.h))}
+ assert(st.s>=game.LENGTH,'course must finish '+id);assert.equal(st.crashes,0,'stock/upgraded clean route '+id);assert.equal(st.gaps,1,'ramp route '+id);assert.equal(st.clean,1);
+ courseRuns.push({id,upgraded:upgrades.length>0,fps,time:+st.time.toFixed(3),peak:+peak.toFixed(2),score:st.bank});
+}
+console.log('Career routes:',JSON.stringify(courseRuns));
+const locked=boot();assert(!locked.g.selectCourse('market'));assert(!locked.g.selectCourse('quarry'));assert(!locked.g.buyUpgrade('bearings'));assert(!locked.g.buyUpgrade('not-real'));
+locked.g.restart();locked.g.state.s=locked.g.LENGTH-.01;locked.g.frame(1);locked.g.frame(34);assert.equal(locked.g.career.bolts,150);assert(locked.g.courseUnlocked('market'));assert(!locked.g.courseUnlocked('quarry'));locked.g.frame(60);assert.equal(locked.g.career.bolts,150,'finish rewards only once');
+assert(locked.g.selectCourse('market'));locked.g.restart();locked.g.state.s=locked.g.LENGTH-.01;locked.g.frame(1);locked.g.frame(34);assert.equal(locked.g.career.bolts,300);assert(locked.g.courseUnlocked('quarry'));assert(locked.g.buyUpgrade('bearings'));assert.equal(locked.g.career.bolts,120);assert(!locked.g.buyUpgrade('bearings'));assert(!locked.g.buyUpgrade('steering'));assert.equal(locked.persisted.records.dash.time>0,true);assert(locked.persisted.records['market/dash'].time>0);const reloaded=boot(false,locked.persisted);assert(reloaded.g.career.upgrades.includes('bearings'));assert(reloaded.g.courseUnlocked('quarry'));assert.equal(reloaded.g.career.bolts,120);assert.equal(reloaded.g.P.maxSpeed,74);
+// Swept barricade hits, jump clearance, soft obstacles, boosts, and recovery grace.
+const hazards=boot(false,{career:{completed:['sunset','market']}}).g;hazards.selectCourse('market');
+let hit=hazards.fresh();Object.assign(hit,{s:1229.99,x:-4,v:80,safeS:1229,safeX:-4});hazards.step(hit,neutral);assert.equal(hit.crashes,1);assert(hit.invulnerable>0);hazards.step(hit,neutral);assert.equal(hit.crashes,1);
+let over=hazards.fresh();Object.assign(over,{s:1229.99,x:-4,v:70,h:2,vy:2});hazards.step(over,neutral);assert.equal(over.crashes,0);
+for(const [z,x] of [[370,-4],[1430,3]]){let h=hazards.fresh();Object.assign(h,{s:z-.01,x,v:60});hazards.step(h,neutral);assert(h.v<55);assert.equal(h.hazardHits.size,1);const velocity=h.v;hazards.step(h,neutral);assert(h.v>velocity-1,'soft obstacle only applies once')}
+let boost=hazards.fresh();Object.assign(boost,{s:1839.99,x:-3,v:45});hazards.step(boost,neutral);assert(boost.v>56);assert.equal(boost.events.has('boost-4'),true);
+// Challenge and level records survive garage purchases independently.
+assert(!g.contractWon({...g.fresh(),s:g.LENGTH,time:38}));
+console.log('PASS: course unlocks, single finish payout, purchases, persistence, swept obstacles, boost and jump clearance');
+for(const id of ['market','quarry']){const t=boot(false,{career:{completed:['sunset','market']}}).g;t.selectCourse(id);const sl=t.fresh();sl.contract='slalom';for(let frame=0;frame<18000&&sl.s<t.LENGTH;frame++){const gate=t.GATES.find(x=>x.s>sl.s)||{x:0};t.step(sl,{...neutral,steer:Math.abs(gate.x-sl.x)>.5?Math.sign(gate.x-sl.x):0})}assert(sl.s>=t.LENGTH);assert.equal(sl.gateHits,6,'all six gates attainable on '+id);assert(t.contractWon(sl));console.log('Slalom course',id,sl.time,sl.crashes)}
+const malformed=boot(false,{career:{bolts:-20,completed:123,upgrades:{}},records:{'market/dash':{time:-20,score:Infinity}}});assert.equal(malformed.g.career.bolts,0);assert(!malformed.g.courseUnlocked('market'));
+const spring=boot(false,{career:{upgrades:['suspension']}}).g;let land=spring.fresh();Object.assign(land,{s:980,h:.01,vy:-18,pitch:.42,flight:true});spring.step(land,neutral);assert.equal(land.crashes,0,'spring chassis absorbs harder landing');
+for(let mask=1;mask<7;mask++)for(const id of ['sunset','market','quarry']){const upgrades=['bearings','steering','suspension'].filter((_,n)=>mask&(1<<n)),t=boot(false,{career:{completed:['sunset','market'],upgrades}}).g;t.selectCourse(id);let st=t.fresh();for(let n=0;n<18000&&st.s<t.LENGTH;n++)t.step(st,t.courseInput(st));assert(st.s>=t.LENGTH&&st.crashes===0,'mixed upgrades complete '+id+'/'+mask)}
+const practice=boot();practice.g.restart();Object.assign(practice.g.state,{s:practice.g.LENGTH-.01});vm.runInContext("replay='course'",practice.ctx);practice.g.frame(1);practice.g.frame(34);assert.equal(practice.g.career.bolts,0);assert.equal(practice.g.career.completed.length,0);assert.equal(practice.persisted.badges,undefined);
+console.log('PASS: every upgrade combination and no practice replay rewards');

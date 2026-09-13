@@ -102,3 +102,7 @@ M1 includes only the bespoke prototype specification in docs/PROTOTYPE_M1.md. Do
 ## Authorized expansion: 2026-09-13
 
 The user explicitly requested better cart graphics and continued game building. This supersedes the original content hold for the three Sunset Hill challenges in m1-6. Original human mechanic gates remain pending and are not inferred from automated testing.
+
+## Career expansion authorized: m2-1
+
+The user explicitly requested more levels, obstacles, speed, and unlockable cart upgrades. Implemented Market Mile and Quarry Drop, four new road features, faster physics, finish rewards, and three fitted upgrades. This supersedes the earlier content hold for these additions. See CAREER.md (in docs/) for the delivered scope; human mechanic gates remain pending.

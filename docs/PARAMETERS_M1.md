@@ -1,6 +1,6 @@
 # M1 implementation and tuning notes
 
-Current build/physics/storage version: `m1-6` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
+Current build/physics/storage version: `m2-1` (2026-09-13). The sections below retain tuning history; newest revisions supersede older parameters.
 
 ## Quick charge, forgiving ramp entry, and visual detail
 
@@ -76,3 +76,11 @@ The frame loop uses a 1/120 s accumulator, eight-step cap, discarded excessive b
 Three contracts share Sunset Hill: dash under 40 seconds; slalom through six gates; air requires a gap, clean landing, and zero recoveries. Gates at 180, 330, 520, 720, 1150 and 1440 m accept 1.8 m lateral error and height under 2.2 m. Swept crossings prevent tunneling; recovery cannot farm gates. Each gate awards 50 through FLOW. Per-challenge records and badges save locally. Replays never save progress. Select slalom, start riding, then use Slalom replay in developer mode.
 
 Cart: chromed chassis, deep mesh basket, corner guards, caster forks/hubs, front plate, and redesigned helmeted rider with backpack. Charge posture, steering lean, and landing compression animate the model. Course physics and ramp forgiveness are unchanged.
+
+## Career expansion: m2-1
+
+See CAREER.md for the current authored courses and progression. Stock starting speed is 18 m/s (was 14), downhill acceleration multiplier 42 (was 38), and Sunset cap 64 m/s (was 58). Market/Quarry caps are 70/76 m/s, with base grades .215/.245 and authored alternating bends. Course length, curves, grade, hazards, dash target, and later slalom gates are selected from course data. Existing pump dip and dumpster ramp remain as shared mechanics on each hill. All upgrade combinations retain a stock-compatible route.
+
+Barricades collide over 4 m length below 1.3 m air height, including cart half-width .45 m. Cones/oil/boost occupy 14 m and affect grounded carts below .25 m once per run. Cone speed multiplier .7; oil .87 plus 3 m/s sideways impulse; boost +12 m/s capped at configured speed. Avoiding an obstacle awards 25 through FLOW. Recovery adds 1.2 s collision grace to prevent immediate repeated barricade hits. Geometry and collision use the same authored coordinates.
+
+Developer Course replay follows the selected hill hazard route and right ramp. It saves no records, unlocks, or bolts. In test mode T restarts this replay; other shortcuts are unchanged.
